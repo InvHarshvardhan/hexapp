@@ -1,7 +1,7 @@
 {
   "name": "hexapp",
   "version": "1.0.0",
-  "description": "HexApp – a simple WhatsApp-like chat app",
+  "description": "HexApp – WhatsApp-like chat app with Socket.IO, Express, deployed on Railway",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

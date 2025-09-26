@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -6,28 +7,30 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Setup Socket.IO with CORS enabled
+// ✅ Socket.IO with CORS setup
 const io = new Server(server, {
   cors: {
-    origin: "*",  // during dev, allow everyone
+    origin: "*",  // Allow any frontend (GitHub Pages, Railway, etc.)
     methods: ["GET", "POST"]
   }
 });
 
-// ✅ Serve static files like index.html, css, js
+// ✅ Serve static files (index.html, css, js if needed)
 app.use(express.static(__dirname));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// ✅ Socket.IO listeners
+// ✅ Socket.IO events
 io.on("connection", (socket) => {
   console.log("✅ User connected:", socket.id);
 
+  // Receive from client
   socket.on("sendNotification", (data) => {
-    console.log("📨 Message from client:", data.text);
-    // Send to everyone else (except sender)
+    console.log("📨 Message from client:", data);
+
+    // Broadcast to everyone else
     socket.broadcast.emit("receiveNotification", data);
   });
 
@@ -36,7 +39,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// ✅ Railway / Vercel / Heroku - use dynamic PORT
+// ✅ Railway uses environment PORT
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

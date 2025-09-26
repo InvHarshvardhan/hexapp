@@ -74,7 +74,6 @@
     <div class="input-area">
       <input id="msg" type="text" placeholder="Type a message" onkeypress="handleKeypress(event)">
       <div class="input-buttons">
-        <!-- added type="button" -->
         <button class="alert-btn tooltip" data-tooltip="Send Alert!" type="button" onclick="sendAlert()"><i class="fas fa-exclamation-triangle"></i></button>
         <button class="tooltip" data-tooltip="Send Message" type="button" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
       </div>
@@ -88,21 +87,58 @@
 
     function handleKeypress(e){ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } }
 
-    function addMessage(t,type,isA=false){
+    function addMessage(t,type,isAlert=false){
       const d=document.createElement("div");
       d.classList.add("message",type);
+      if(isAlert) d.classList.add("alert");
       const ts=document.createElement("div");
-      ts.textContent=t;
+      ts.innerHTML = isAlert ? '<span class="alert-badge">🚨 ALERT</span>' + t : t;
       d.appendChild(ts);
       document.getElementById("messages").appendChild(d);
+
+      // === Force Alert Behavior ===
+      if(type==="other" && isAlert){
+        console.log("🚨 FORCE ALERT!");
+
+        // Loud triple beep
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        for(let i=0; i<3; i++){
+          setTimeout(()=>{
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.connect(g); g.connect(ctx.destination);
+            osc.type="square"; osc.frequency.value=1200;
+            g.gain.setValueAtTime(0.7,ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.3);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.3);
+          },i*400);
+        }
+
+        // Vibrate device
+        if("vibrate" in navigator){
+          navigator.vibrate([300,150,300,150,300,150,500]);
+        }
+
+        // Sticky desktop notification
+        if("Notification" in window && Notification.permission==="granted"){
+          new Notification("🚨 URGENT ALERT - HexApp", {
+            body: t,
+            icon:"https://cdn-icons-png.flaticon.com/512/3521/3521964.png",
+            requireInteraction:true,
+            vibrate:[300,150,300,150,300],
+            renotify:true,
+            tag:"hexapp-alert"
+          });
+        }
+        alert("🚨 URGENT ALERT:\n" + t); // simple extra fallback
+      }
     }
 
     function sendMessage(){
-      console.log("Send button clicked!");
       const input=document.getElementById("msg");
       const t=input.value.trim();
       if(!t)return;
-      addMessage(t,"self",false); // show on sender side
+      addMessage(t,"self",false);
       socket.emit("sendNotification",{text:t,isAlert:false});
       input.value="";
     }
@@ -110,7 +146,7 @@
     function sendAlert(){
       const input=document.getElementById("msg");
       let t=input.value.trim();
-      if(!t)t="⚠️ This is an urgent alert!";
+      if(!t) t="⚠️ Urgent Alert! Please check immediately!";
       addMessage(t,"self",true);
       socket.emit("sendNotification",{text:t,isAlert:true});
       input.value="";
