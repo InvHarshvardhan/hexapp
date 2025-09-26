@@ -60,53 +60,23 @@
 </head>
 <body>
 
-  <!-- Alert Modal -->
-  <div id="alertModal" class="alert-modal">
-    <div class="alert-modal-content">
-      <div class="alert-icon">🚨</div>
-      <h2>URGENT ALERT!</h2>
-      <p id="alertMessage">You received an urgent notification!</p>
-      <button onclick="closeAlertModal()">OK, Got it!</button>
-    </div>
-  </div>
-
-  <!-- Notification Popup -->
-  <div id="notificationPopup" class="notification-popup">
-    <h3>🔔 Enable Notifications?</h3>
-    <p>Get notified when you receive new messages</p>
-    <button onclick="enableNotifications()">Allow</button>
-    <button class="secondary" onclick="closeNotificationPopup()">Not Now</button>
-  </div>
-
-  <!-- Toast -->
-  <div id="toast" class="toast"></div>
-
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="avatar">H</div><h2>HexApp</h2>
-    </div>
-    <div class="search-box"><i class="fas fa-search"></i><input placeholder="Search or start new chat" disabled></div>
-    <div class="chat-list"><div class="chat-item"><div class="avatar">T</div><div class="chat-info"><div class="chat-name">Test User</div><div class="last-msg">Online now</div></div><span class="online"></span></div></div>
-  </div>
-
   <!-- Main Chat -->
   <div class="main-chat">
     <div class="chat-header">
       <div class="avatar">T</div>
-      <div class="header-title"><h3>Test User</h3><p style="font-size:0.85em;opacity:.8;">online</p></div>
+      <div class="header-title"><h3>Test User</h3></div>
       <div class="header-icons">
         <i class="fas fa-video"></i><i class="fas fa-phone"></i>
-        <button id="notificationBtn" class="notification-btn" onclick="toggleNotifications()" title="Toggle notifications"><i class="fas fa-bell"></i></button>
-        <i class="fas fa-ellipsis-v"></i>
+        <button id="notificationBtn" type="button" class="notification-btn" onclick="toggleNotifications()" title="Toggle notifications"><i class="fas fa-bell"></i></button>
       </div>
     </div>
     <div class="messages-container" id="messages"></div>
     <div class="input-area">
       <input id="msg" type="text" placeholder="Type a message" onkeypress="handleKeypress(event)">
       <div class="input-buttons">
-        <button class="alert-btn tooltip" data-tooltip="Send Alert!" onclick="sendAlert()"><i class="fas fa-exclamation-triangle"></i></button>
-        <button class="tooltip" data-tooltip="Send Message" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        <!-- added type="button" -->
+        <button class="alert-btn tooltip" data-tooltip="Send Alert!" type="button" onclick="sendAlert()"><i class="fas fa-exclamation-triangle"></i></button>
+        <button class="tooltip" data-tooltip="Send Message" type="button" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
       </div>
     </div>
   </div>
@@ -116,8 +86,37 @@
   <script>
     const socket = io("https://hexapp-production.up.railway.app");
 
-    // === All your JavaScript logic: sendMessage, sendAlert, addMessage, notifications, etc. ===
-    // (Use the exact same one you had working before, I didn't remove a single function this time)
+    function handleKeypress(e){ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } }
+
+    function addMessage(t,type,isA=false){
+      const d=document.createElement("div");
+      d.classList.add("message",type);
+      const ts=document.createElement("div");
+      ts.textContent=t;
+      d.appendChild(ts);
+      document.getElementById("messages").appendChild(d);
+    }
+
+    function sendMessage(){
+      console.log("Send button clicked!");
+      const input=document.getElementById("msg");
+      const t=input.value.trim();
+      if(!t)return;
+      addMessage(t,"self",false); // show on sender side
+      socket.emit("sendNotification",{text:t,isAlert:false});
+      input.value="";
+    }
+
+    function sendAlert(){
+      const input=document.getElementById("msg");
+      let t=input.value.trim();
+      if(!t)t="⚠️ This is an urgent alert!";
+      addMessage(t,"self",true);
+      socket.emit("sendNotification",{text:t,isAlert:true});
+      input.value="";
+    }
+
+    socket.on("receiveNotification",(data)=>{ addMessage(data.text,"other",data.isAlert||false); });
   </script>
 </body>
 </html>
