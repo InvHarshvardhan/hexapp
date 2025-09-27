@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HexApp</title>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { display: flex; height: 100vh; background: #f0f2f5; }
+    .sidebar { width: 300px; background: #128C7E; color: white; padding: 15px; display: flex; flex-direction: column; }
+    .sidebar-header { display: flex; align-items: center; margin-bottom: 20px; }
+    .sidebar-header h2 { margin-left: 10px; font-weight: 600; }
+    .search-box { background: rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; margin-bottom: 20px; }
+    .search-box input { background: transparent; border: none; outline: none; color: white; width: 100%; margin-left: 8px; }
+    .chat-list { flex: 1; overflow-y: auto; }
+    .chat-item { display: flex; align-items: center; padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    .chat-item:hover { background: rgba(255,255,255,0.1); }
+    .avatar { width: 45px; height: 45px; border-radius: 50%; background: #ddd; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; margin-right: 12px; }
+    .chat-info { flex: 1; }
+    .chat-name { font-weight: 600; }
+    .last-msg { font-size: 0.85em; color: rgba(255,255,255,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .main-chat { flex: 1; display: flex; flex-direction: column; background: url('https://i.imgur.com/jtQvFbY.jpg') center/cover; }
+    .chat-header { background: #128C7E; color: white; padding: 12px 16px; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .chat-header .avatar { margin-right: 12px; }
+    .header-title { flex: 1; }
+    .header-icons i { margin-left: 16px; font-size: 1.3em; cursor: pointer; transition: all 0.2s; }
+    .header-icons i:hover { transform: scale(1.1); }
+    .notification-btn { position: relative; background: none; border: none; color: white; cursor: pointer; font-size: 1.3em; margin-left: 16px; }
+    .notification-btn.muted { opacity: 0.5; }
+    .notification-btn.muted::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(45deg); width: 2px; height: 20px; background: red; }
+    .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+    .message { max-width: 70%; padding: 10px 14px; border-radius: 10px; margin-bottom: 10px; position: relative; word-wrap: break-word; animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+    .self { background: #005C4B; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
+    .other { background: white; color: #333; align-self: flex-start; border-bottom-left-radius: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .system { background: #e9ecef!important; color: #6c757d!important; align-self:center!important; text-align:center!important; font-style: italic; max-width:90%!important; border-radius:20px!important; box-shadow:none!important; }
+    .message.alert { background: linear-gradient(135deg, #ff6b6b, #ff4444); color: white; font-weight: bold; box-shadow: 0 4px 15px rgba(255,68,68,.3); animation: pulseAlert 2s infinite; }
+    @keyframes pulseAlert { 0%,100% { transform:scale(1);} 50%{ transform:scale(1.02);} }
+    .alert-badge { display:inline-block; background:rgba(255,255,255,0.3); padding:2px 8px; border-radius:12px; font-size:0.75em; margin-right:8px; }
+    .message-time { font-size:0.7em; opacity:0.7; margin-top:4px; text-align: right;}
+    .input-area { background:white; padding:12px 16px; display:flex; align-items:center; box-shadow:0 -1px 5px rgba(0,0,0,0.1);}
+    .input-area input { flex:1; border:none; outline:none; font-size:1rem; padding:8px 0;}
+    .input-buttons { display:flex; align-items:center; gap:8px; margin-left:10px;}
+    .input-area button { background:#128C7E; color:white; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.2em; transition: all .2s;}
+    .input-area button:hover { background:#075e54; transform:scale(1.05);}
+    .alert-btn { background:#ff4444!important; animation: glow 2s ease-in-out infinite;}
+    @keyframes glow {0%,100%{box-shadow:0 0 5px rgba(255,68,68,.5);}50%{box-shadow:0 0 20px rgba(255,68,68,.8);}}
+    .alert-modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:2000;}
+    .alert-modal-content { background:white; padding:30px; border-radius:15px; text-align:center; max-width:400px;}
+    .alert-icon { font-size:60px; color:#ff4444; margin-bottom:20px;}
+    .online { position:absolute; bottom:0; right:0; width:12px; height:12px; background:#34c759; border:2px solid white; border-radius:50%;}
+    .notification-popup { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:white; padding:16px 24px; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.2); z-index:1000; display:none;}
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:12px 20px; border-radius:8px; display:none;}
+    .tooltip { position:relative; }
+    .tooltip::before { content: attr(data-tooltip); position:absolute; bottom:120%; left:50%; transform:translateX(-50%); background:#333; color:white; padding:5px 10px; border-radius:5px; font-size:0.8em; white-space:nowrap; opacity:0; transition: opacity .3s;}
+    .tooltip:hover::before { opacity:1; }
+  </style>
+</head>
+<body>
+
+  <!-- Main Chat -->
+  <div class="main-chat">
+    <div class="chat-header">
+      <div class="avatar">T</div>
+      <div class="header-title"><h3>Test User</h3></div>
+      <div class="header-icons">
+        <i class="fas fa-video"></i><i class="fas fa-phone"></i>
+        <button id="notificationBtn" type="button" class="notification-btn" onclick="toggleNotifications()" title="Toggle notifications"><i class="fas fa-bell"></i></button>
+      </div>
+    </div>
+    <div class="messages-container" id="messages"></div>
+    <div class="input-area">
+      <input id="msg" type="text" placeholder="Type a message" onkeypress="handleKeypress(event)">
+      <div class="input-buttons">
+        <button class="alert-btn tooltip" data-tooltip="Send Alert!" type="button" onclick="sendAlert()"><i class="fas fa-exclamation-triangle"></i></button>
+        <button class="tooltip" data-tooltip="Send Message" type="button" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Socket.IO client script -->
+  <script src="https://hexapp-production.up.railway.app/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io("https://hexapp-production.up.railway.app");
+
+    function handleKeypress(e){ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } }
+
+    function addMessage(t,type,isAlert=false){
+      const d=document.createElement("div");
+      d.classList.add("message",type);
+      if(isAlert) d.classList.add("alert");
+      const ts=document.createElement("div");
+      ts.innerHTML = isAlert ? '<span class="alert-badge">🚨 ALERT</span>' + t : t;
+      d.appendChild(ts);
+      document.getElementById("messages").appendChild(d);
+
+      // === Force Alert Behavior ===
+      if(type==="other" && isAlert){
+        console.log("🚨 FORCE ALERT!");
+
+        // Loud triple beep
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        for(let i=0; i<3; i++){
+          setTimeout(()=>{
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.connect(g); g.connect(ctx.destination);
+            osc.type="square"; osc.frequency.value=1200;
+            g.gain.setValueAtTime(0.7,ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.3);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.3);
+          },i*400);
+        }
+
+        // Vibrate device
+        if("vibrate" in navigator){
+          navigator.vibrate([300,150,300,150,300,150,500]);
+        }
+
+        // Sticky desktop notification
+        if("Notification" in window && Notification.permission==="granted"){
+          new Notification("🚨 URGENT ALERT - HexApp", {
+            body: t,
+            icon:"https://cdn-icons-png.flaticon.com/512/3521/3521964.png",
+            requireInteraction:true,
+            vibrate:[300,150,300,150,300],
+            renotify:true,
+            tag:"hexapp-alert"
+          });
+        }
+        alert("🚨 URGENT ALERT:\n" + t); // simple extra fallback
+      }
+    }
+
+    function sendMessage(){
+      const input=document.getElementById("msg");
+      const t=input.value.trim();
+      if(!t)return;
+      addMessage(t,"self",false);
+      socket.emit("sendNotification",{text:t,isAlert:false});
+      input.value="";
+    }
+
+    function sendAlert(){
+      const input=document.getElementById("msg");
+      let t=input.value.trim();
+      if(!t) t="⚠️ Urgent Alert! Please check immediately!";
+      addMessage(t,"self",true);
+      socket.emit("sendNotification",{text:t,isAlert:true});
+      input.value="";
+    }
+
+    socket.on("receiveNotification",(data)=>{ addMessage(data.text,"other",data.isAlert||false); });
+  </script>
+</body>
+</html>
